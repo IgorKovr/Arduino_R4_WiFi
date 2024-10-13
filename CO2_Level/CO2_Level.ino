@@ -5,20 +5,17 @@
 
 ArduinoLEDMatrix matrix;
 
+// Used for Timer functinoality
+unsigned long previousCO2Millis = 0;  // Stores the last time CO2 was read
+const unsigned long co2Interval = 5000;  // Interval at which to read CO2 (5000 milliseconds = 5 seconds)
+
 void setup() {
-  // LED Matrix
-  matrix.loadSequence(LEDMATRIX_ANIMATION_TETRIS_INTRO);
-  matrix.begin();
-  matrix.play(true); // loop == false
-  
-  // Initialize serial and wait for port to open:
+  playLEDMatrixLoadingAnimation();
   Serial.begin(9600);
   // This delay gives the chance to wait for a Serial Monitor without blocking if none is found
-  delay(1500); 
-
+  delay(2000); 
   // Defined in thingProperties.h
   initProperties();
-
   // Connect to Arduino IoT Cloud
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
   
@@ -32,16 +29,20 @@ void setup() {
   setDebugMessageLevel(2);
   ArduinoCloud.printDebugInfo();
 
-  delay(1000);
+  // Wait for the loading animation to finish
+  delay(4000);
   matrix.clear();
 }
 
 void loop() {
   ArduinoCloud.update();
-  // Your code here
-  
-  readAndSendCO2Value();
-  // delay(5000);
+
+  // Check if delay have passed since the last CO2 read
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousCO2Millis >= co2Interval) {
+    previousCO2Millis = currentMillis;  // Update the timestamp for the last CO2 read
+    readAndSendCO2Value();
+  }
 
   if (led) {
     matrix.loadSequence(LEDMATRIX_ANIMATION_LED_BLINK_VERTICAL);
@@ -59,11 +60,15 @@ void readAndSendCO2Value() {
   Serial.println(randomNumber);
 }
 
-/*
-  Since Led is READ_WRITE variable, onLedChange() is
-  executed every time a new value is received from IoT Cloud.
-*/
+// Executed every time a new value is received from IoT Cloud.
+// Defined in thingProperties.h
 void onLedChange()  {
   Serial.print("Led status changed:");
   Serial.println(led);
+}
+
+void playLEDMatrixLoadingAnimation() {
+  matrix.loadSequence(LEDMATRIX_ANIMATION_TETRIS_INTRO);
+  matrix.begin();
+  matrix.play(true);
 }
