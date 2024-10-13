@@ -7,7 +7,7 @@ ArduinoLEDMatrix matrix;
 
 // Used for Timer functinoality
 unsigned long previousCO2Millis = 0;  // Stores the last time CO2 was read
-const unsigned long co2Interval = 5000;  // Interval at which to read CO2 (5000 milliseconds = 5 seconds)
+const unsigned long co2Interval = 2000;  // Interval at which to read CO2 in milliseconds
 
 void setup() {
   playLEDMatrixLoadingAnimation();
@@ -19,19 +19,15 @@ void setup() {
   // Connect to Arduino IoT Cloud
   ArduinoCloud.begin(ArduinoIoTPreferredConnection);
   
-  /*
-     The following function allows you to obtain more information
-     related to the state of network and IoT Cloud connection and errors
-     the higher number the more granular information you’ll get.
-     The default is 0 (only errors).
-     Maximum is 4
- */
-  setDebugMessageLevel(2);
+  //  Enable Debuggin of the network, IoT Cloud connection, and errors. 4 is MAX
+  setDebugMessageLevel(4);
   ArduinoCloud.printDebugInfo();
 
   // Wait for the loading animation to finish
-  delay(4000);
+  delay(3300);
   matrix.clear();
+  led = true;
+  isLedOn = true;
 }
 
 void loop() {
@@ -45,8 +41,7 @@ void loop() {
   }
 
   if (led) {
-    matrix.loadSequence(LEDMATRIX_ANIMATION_LED_BLINK_VERTICAL);
-    matrix.play(true);
+    printOnLEDMatrix(String(cO2Level, 0));
     isLedOn = true;
   } else {
     matrix.clear();
@@ -55,9 +50,9 @@ void loop() {
 }
 
 void readAndSendCO2Value() {
-  int randomNumber = random(400, 3000);
-  cO2Level = randomNumber;
-  Serial.println(randomNumber);
+  // TODO: Replace with SCD30 Readings
+  cO2Level = analogRead(0);
+  Serial.println(cO2Level);
 }
 
 // Executed every time a new value is received from IoT Cloud.
@@ -70,5 +65,15 @@ void onLedChange()  {
 void playLEDMatrixLoadingAnimation() {
   matrix.loadSequence(LEDMATRIX_ANIMATION_TETRIS_INTRO);
   matrix.begin();
-  matrix.play(true);
+  matrix.play(false); // false == don't repeat animation
+}
+
+void printOnLEDMatrix(String displayText) {
+  matrix.beginDraw();
+  matrix.stroke(0xFFFFFFFF);
+  matrix.textFont(Font_5x7);
+  matrix.beginText(0, 1, 0xFFFFFF);
+  matrix.println(displayText);
+  matrix.endText(NO_SCROLL);
+  matrix.endDraw();
 }
